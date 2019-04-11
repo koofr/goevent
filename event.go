@@ -1,6 +1,7 @@
 package goevent
 
 import (
+	"context"
 	"time"
 )
 
@@ -38,10 +39,23 @@ func (e *Event) WaitMax(timeout time.Duration) bool {
 		return false
 	}
 	select {
-	case _ = <-e.ch:
+	case <-e.ch:
 		e.Set()
 		return true
 	case <-time.After(timeout):
+		return false
+	}
+}
+
+func (e *Event) WaitCtx(ctx context.Context) bool {
+	if e == nil {
+		return false
+	}
+	select {
+	case <-e.ch:
+		e.Set()
+		return true
+	case <-ctx.Done():
 		return false
 	}
 }

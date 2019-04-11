@@ -1,12 +1,13 @@
 package goevent
 
 import (
+	"context"
 	"testing"
 	"time"
 )
 
 func TestNilObject(t *testing.T) {
-	var event *Event = nil
+	var event *Event
 	event.Set()
 	if event.IsSet() {
 		t.Error("nil event is set")
@@ -46,6 +47,42 @@ func TestEventWaitMax(t *testing.T) {
 	}()
 
 	ok := e.WaitMax(10 * time.Millisecond)
+	if !ok {
+		t.Error("Event didn't fire")
+	}
+}
+
+func TestEventWaitCtxTimeout(t *testing.T) {
+	e := NewEvent()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	ok := e.WaitCtx(ctx)
+	if ok {
+		t.Error("unset event fired")
+	}
+	cancel()
+}
+
+func TestEventWaitCtx(t *testing.T) {
+	e := NewEvent()
+	go func() {
+		time.Sleep(1 * time.Millisecond)
+		e.Set()
+	}()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	ok := e.WaitCtx(ctx)
+	if !ok {
+		t.Error("Event didn't fire")
+	}
+	cancel()
+}
+
+func TestEventWaitCtxWithoutCancel(t *testing.T) {
+	e := NewEvent()
+	go func() {
+		time.Sleep(1 * time.Millisecond)
+		e.Set()
+	}()
+	ok := e.WaitCtx(context.Background())
 	if !ok {
 		t.Error("Event didn't fire")
 	}
